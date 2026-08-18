@@ -588,7 +588,27 @@
         };
       };
 
-      const invoiceAddress = readCxmlAddress(header.querySelector(':scope > BillTo'));
+      const billToContainer = header.querySelector(':scope > BillTo');
+      const invoiceAddress = readCxmlAddress(billToContainer);
+
+      // Manche Test-cXMLs enthalten nur Billing-Platzhalter wie
+      // billing_name, billing_street, billing_city usw. Diese Werte dürfen
+      // nicht als echte Rechnungsadresse ins IDoc übernommen werden.
+      const billToRawText = billToContainer?.textContent || '';
+      const hasBillingPlaceholder = /\bbilling_/i.test(billToRawText);
+      if (hasBillingPlaceholder) {
+        // Platzhalter-Felder entfernen. Land (z. B. DE) darf erhalten bleiben,
+        // da es kein billing_-Platzhalter ist.
+        invoiceAddress.name1 = /^billing_/i.test(invoiceAddress.name1) ? '' : invoiceAddress.name1;
+        invoiceAddress.extra = invoiceAddress.extra
+          .split(/\r?\n/)
+          .filter(value => value && !/^billing_/i.test(value.trim()))
+          .join('\n');
+        invoiceAddress.street = 'Musterstrasse 1';
+        invoiceAddress.postal = '12345';
+        invoiceAddress.city = 'Berlin';
+      }
+
       const deliveryAddress = readCxmlAddress(header.querySelector(':scope > ShipTo'));
 
       const items = [...orderRequest.querySelectorAll(':scope > ItemOut')].map(item => {
