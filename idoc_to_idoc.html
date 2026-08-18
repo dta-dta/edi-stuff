@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bestellformular</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --bg-soft: #111827;
+      --card: #151d2e;
+      --card-2: #182235;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --border: #2b364b;
+      --accent: #3b82f6;
+      --accent-dark: #2563eb;
+      --accent-soft: rgba(59,130,246,.12);
+      --danger: #f87171;
+      --success: #34d399;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(37,99,235,.13), transparent 28%),
+        linear-gradient(180deg, #0b1120 0%, #0d1424 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 42px 22px 56px;
+    }
+
+    .header {
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      margin: 0 0 7px;
+      font-size: 34px;
+      letter-spacing: -.02em;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(24,34,53,.96), rgba(21,29,46,.96));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.18);
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 750;
+      margin: 0 0 16px;
+      letter-spacing: -.01em;
+    }
+
+    .upload-card {
+      padding: 16px 18px;
+      background: rgba(18, 28, 45, .88);
+      border-color: #30405b;
+    }
+
+    .upload-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .upload-copy {
+      min-width: 220px;
+      flex: 1 1 360px;
+    }
+
+    .upload-copy .section-title {
+      margin-bottom: 4px;
+    }
+
+    .upload-copy .hint {
+      margin: 0;
+      max-width: 650px;
+    }
+
+    .upload-control {
+      flex: 0 0 auto;
+      width: min(100%, 310px);
+    }
+
+    .file-input {
+      width: 100%;
+      padding: 7px;
+      font-size: 13px;
+      color: var(--muted);
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 9px;
+    }
+
+    .file-input::file-selector-button {
+      border: 0;
+      border-radius: 7px;
+      padding: 8px 10px;
+      margin-right: 10px;
+      background: var(--accent-soft);
+      color: #bfdbfe;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .import-status {
+      margin-top: 9px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .import-status.success { color: var(--success); }
+    .import-status.error { color: var(--danger); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .address-box {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid #2d3a50;
+      border-radius: 13px;
+      background: #111827;
+    }
+
+    .address-box h3 { margin: 0 0 2px; font-size: 14px; color: #e5e7eb; }
+    .address-row { display: grid; grid-template-columns: .8fr 1.2fr; gap: 12px; }
+    .address-extra { min-height: 72px; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    label {
+      font-weight: 700;
+      font-size: 13px;
+      color: #dbe4f0;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid #344158;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 14px;
+      color: var(--text);
+      background: #0f172a;
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    input::placeholder, textarea::placeholder { color: #667085; }
+
+    textarea {
+      min-height: 112px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.14);
+      background: #111b30;
+    }
+
+    .article {
+      position: relative;
+      border: 1px solid #2d3a50;
+      border-radius: 13px;
+      padding: 18px;
+      margin-top: 14px;
+      background: #111827;
+    }
+
+    .article-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .article-title {
+      font-weight: 750;
+      color: #e5e7eb;
+    }
+
+    .article-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1.25fr .7fr .9fr;
+      gap: 12px;
+    }
+
+    .total-box {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: minmax(240px, 360px);
+      justify-content: end;
+    }
+
+    .total-box input {
+      font-size: 17px;
+      font-weight: 750;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 9px;
+      padding: 10px 15px;
+      font-size: 14px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform .12s ease, background .15s ease, border-color .15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(37,99,235,.22);
+    }
+
+    .btn-primary:hover { background: var(--accent-dark); }
+
+    .btn-secondary {
+      background: #18243a;
+      border-color: #334155;
+      color: #bfdbfe;
+    }
+
+    .btn-secondary:hover { background: #1e2d48; }
+
+    .btn-remove {
+      background: rgba(248,113,113,.08);
+      border-color: rgba(248,113,113,.18);
+      color: #fca5a5;
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.45;
+      margin-top: 8px;
+    }
+
+
+    .paste-import {
+      margin-top: 14px;
+      display: grid;
+      gap: 9px;
+    }
+
+    .paste-import label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .cxml-text {
+      min-height: 110px;
+      max-height: 240px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .paste-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 850px) {
+      .grid-2, .article-grid, .address-row { grid-template-columns: 1fr; }
+      .upload-control { width: 100%; }
+      .page { padding: 26px 14px 40px; }
+      .header h1 { font-size: 29px; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      .page { max-width: none; margin: 0; padding: 0; }
+      .card { box-shadow: none; border: 0; background: #fff; }
+      .actions, .btn-remove, .hint, .header p, .upload-card { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="header">
+      <h1>Bestellung</h1>
+      <p>Bestelldaten ausfüllen und anschließend als PDF erzeugen.</p>
+    </div>
+
+    <section class="card upload-card">
+      <div class="upload-top">
+        <div class="upload-copy">
+          <h2 class="section-title">SAP IDoc / ORDERS05 importieren <span style="color:var(--muted); font-weight:600;">(optional)</span></h2>
+          <div class="hint">Übernimmt Rechnungsadresse, Lieferadresse, PO-Nummer, Artikel und Bestellwert aus ORDERS05. Die Lieferanten-/Bereitstelleradresse (PARVW=LF) wird ignoriert. Alle Werte bleiben anschließend bearbeitbar.</div>
+        </div>
+        <div class="upload-control">
+          <input class="file-input" id="cxmlFile" type="file" accept=".cxml,.xml,.txt,text/xml,application/xml" aria-label="IDoc XML-Datei auswählen" />
+        </div>
+      </div>
+      <div class="paste-import">
+        <label for="cxmlText">Oder IDoc/XML-Inhalt direkt einfügen</label>
+        <textarea id="cxmlText" class="cxml-text" placeholder="&lt;ORDERS05&gt; ... &lt;/ORDERS05&gt;"></textarea>
+        <div class="paste-actions">
+          <button type="button" class="btn-secondary" id="importCxmlText">IDoc aus Text übernehmen</button>
+        </div>
+      </div>
+      <div id="importStatus" class="import-status" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Adressdaten</h2>
+      <div class="grid-2">
+        <div class="address-box">
+          <h3>Lieferadresse (WE)</h3>
+          <div class="field"><label for="delivery-name1">Firma / NAME1</label><input id="delivery-name1" type="text" /></div>
+          <div class="field"><label for="delivery-extra">Zusatz / NAME2–NAME4</label><textarea id="delivery-extra" class="address-extra" placeholder="Optional, eine Zeile je Zusatz"></textarea></div>
+          <div class="field"><label for="delivery-street">Straße / STRAS</label><input id="delivery-street" type="text" /></div>
+          <div class="address-row">
+            <div class="field"><label for="delivery-postal">PLZ / PSTLZ</label><input id="delivery-postal" type="text" /></div>
+            <div class="field"><label for="delivery-city">Ort / ORT01</label><input id="delivery-city" type="text" /></div>
+          </div>
+          <div class="field"><label for="delivery-country">Land / LAND1</label><input id="delivery-country" type="text" placeholder="z. B. DE" maxlength="2" /></div>
+        </div>
+        <div class="address-box">
+          <h3>Rechnungsadresse (AG)</h3>
+          <div class="field"><label for="invoice-name1">Firma / NAME1</label><input id="invoice-name1" type="text" /></div>
+          <div class="field"><label for="invoice-extra">Zusatz / NAME2–NAME4</label><textarea id="invoice-extra" class="address-extra" placeholder="Optional, eine Zeile je Zusatz"></textarea></div>
+          <div class="field"><label for="invoice-street">Straße / STRAS</label><input id="invoice-street" type="text" /></div>
+          <div class="address-row">
+            <div class="field"><label for="invoice-postal">PLZ / PSTLZ</label><input id="invoice-postal" type="text" /></div>
+            <div class="field"><label for="invoice-city">Ort / ORT01</label><input id="invoice-city" type="text" /></div>
+          </div>
+          <div class="field"><label for="invoice-country">Land / LAND1</label><input id="invoice-country" type="text" placeholder="z. B. DE" maxlength="2" /></div>
+        </div>
+      </div>
+      <div class="hint">Die Felder werden beim Export direkt in NAME1, NAME2–NAME4, STRAS, PSTLZ, ORT01 und LAND1 geschrieben. So muss keine Freitext-Adresse mehr zurückinterpretiert werden.</div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Bestelldaten</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="po">Bestellung / PO Nummer</label>
+          <input id="po" type="text" placeholder="z. B. PO-2026-001" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Artikel</h2>
+      <div id="articles"></div>
+      <div class="actions">
+        <button type="button" class="btn-secondary" id="addArticle">+ Artikel hinzufügen</button>
+      </div>
+      <div class="total-box">
+        <div class="field">
+          <label for="totalAmount">Total Amount (Bestellwert)</label>
+          <input id="totalAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+          <div class="hint">Wird automatisch aus Stückzahl × Summe pro Stück berechnet. Du kannst den Wert auch manuell eintragen.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="actions">
+        <button type="button" class="btn-primary" id="generateIdoc">IDoc XML herunterladen</button>
+      </div>
+      <div class="hint">Erzeugt wieder eine ORDERS05/IDoc-XML-Datei im gleichen Grundformat wie die importierte Vorlage.</div>
+    </section>
+  </main>
+
+  <template id="articleTemplate">
+    <div class="article">
+      <div class="article-head">
+        <div class="article-title">Artikel <span class="article-number"></span></div>
+        <button type="button" class="btn-remove removeArticle">Entfernen</button>
+      </div>
+      <div class="article-grid">
+        <div class="field">
+          <label>Artikelbezeichnung</label>
+          <input type="text" class="article-name" />
+        </div>
+        <div class="field">
+          <label>SKU</label>
+          <input type="text" class="article-sku" />
+        </div>
+        <div class="field">
+          <label>Order-Id</label>
+          <input type="text" class="article-order-id" />
+        </div>
+        <div class="field">
+          <label>Stückzahl</label>
+          <input type="number" min="0" step="1" class="article-qty" />
+        </div>
+        <div class="field">
+          <label>Summe pro Stück</label>
+          <input type="number" min="0" step="0.01" class="article-price" />
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const articlesContainer = document.getElementById('articles');
+    const template = document.getElementById('articleTemplate');
+    const totalAmountInput = document.getElementById('totalAmount');
+    let totalAmountManuallyEdited = false;
+    let sourceIdocXmlText = ''; // Original-IDoc als Strukturvorlage für den Export
+
+    function calculateTotalAmount() {
+      if (totalAmountManuallyEdited) return;
+
+      let total = 0;
+      let hasCalculableItem = false;
+
+      [...articlesContainer.querySelectorAll('.article')].forEach(article => {
+        const qtyRaw = article.querySelector('.article-qty').value;
+        const priceRaw = article.querySelector('.article-price').value;
+        if (qtyRaw !== '' && priceRaw !== '') {
+          const qty = Number(qtyRaw);
+          const price = Number(priceRaw);
+          if (Number.isFinite(qty) && Number.isFinite(price)) {
+            total += qty * price;
+            hasCalculableItem = true;
+          }
+        }
+      });
+
+      totalAmountInput.value = hasCalculableItem ? total.toFixed(2) : '';
+    }
+
+    function renumberArticles() {
+      [...articlesContainer.querySelectorAll('.article')].forEach((article, index) => {
+        article.querySelector('.article-number').textContent = index + 1;
+        article.querySelector('.removeArticle').style.display =
+          articlesContainer.children.length === 1 ? 'none' : 'inline-block';
+      });
+    }
+
+    function addArticle(data = {}) {
+      const node = template.content.cloneNode(true);
+      const article = node.querySelector('.article');
+
+      article.querySelector('.article-name').value = data.name ?? '';
+      article.querySelector('.article-sku').value = data.sku ?? '';
+      article.querySelector('.article-order-id').value = data.orderId ?? '';
+      article.querySelector('.article-qty').value = data.qty ?? '';
+      article.querySelector('.article-price').value = data.price ?? '';
+
+      article.querySelector('.removeArticle').addEventListener('click', (e) => {
+        e.target.closest('.article').remove();
+        renumberArticles();
+        calculateTotalAmount();
+      });
+      article.querySelector('.article-qty').addEventListener('input', calculateTotalAmount);
+      article.querySelector('.article-price').addEventListener('input', calculateTotalAmount);
+      articlesContainer.appendChild(node);
+      renumberArticles();
+      calculateTotalAmount();
+    }
+
+    function getText(parent, selector) {
+      const el = parent?.querySelector(selector);
+      return el?.textContent?.trim() ?? '';
+    }
+
+    function countryNameFromIso(isoCode, fallback = '') {
+      const iso = (isoCode || '').trim().toUpperCase();
+      const names = {
+        DE: 'Germany', AT: 'Austria', CH: 'Switzerland',
+        FR: 'France', NL: 'Netherlands', BE: 'Belgium',
+        IT: 'Italy', ES: 'Spain', PL: 'Poland',
+        GB: 'United Kingdom', UK: 'United Kingdom', US: 'United States'
+      };
+      return fallback || names[iso] || iso;
+    }
+
+    function formatShipTo(shipTo) {
+      if (!shipTo) return '';
+
+      const address = shipTo.querySelector('Address');
+      const postal = address?.querySelector('PostalAddress');
+      if (!postal) return '';
+
+      const lines = [];
+      const deliverTo = [...postal.querySelectorAll('DeliverTo')]
+        .map(el => el.textContent.trim())
+        .filter(Boolean);
+      const street = getText(postal, 'Street');
+      const city = getText(postal, 'City');
+      const state = getText(postal, 'State');
+      const postalCode = getText(postal, 'PostalCode');
+      const countryEl = postal.querySelector('Country');
+      const countryText = countryEl?.textContent?.trim() || '';
+      const countryIso = countryEl?.getAttribute('isoCountryCode') || '';
+
+      lines.push(...deliverTo);
+      if (street) lines.push(street);
+
+      const cityLineParts = [];
+      if (postalCode) {
+        cityLineParts.push(countryIso ? `${countryIso.toUpperCase()}-${postalCode}` : postalCode);
+      }
+      if (city) cityLineParts.push(city);
+      if (state) cityLineParts.push(state);
+      if (cityLineParts.length) lines.push(cityLineParts.join(' '));
+
+      const country = countryNameFromIso(countryIso, countryText);
+      if (country) lines.push(country);
+
+      return lines.join('\n');
+    }
+
+    function parseIdoc(xmlText) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, 'application/xml');
+      const parserError = xml.querySelector('parsererror');
+      if (parserError) throw new Error('Die Datei ist keine gültige XML-/IDoc-Datei.');
+
+      const idoc = xml.querySelector('IDOC');
+      if (!idoc) throw new Error('Kein IDOC-Element gefunden.');
+
+      const readAddress = (segment) => {
+        if (!segment) return { name1: '', extra: '', street: '', postal: '', city: '', country: '' };
+        const extras = [
+          getText(segment, ':scope > NAME2'),
+          getText(segment, ':scope > NAME3'),
+          getText(segment, ':scope > NAME4')
+        ].filter(v => v && v !== '-leer-');
+        return {
+          name1: getText(segment, ':scope > NAME1'),
+          extra: extras.join('\n'),
+          street: getText(segment, ':scope > STRAS'),
+          postal: getText(segment, ':scope > PSTLZ'),
+          city: getText(segment, ':scope > ORT01'),
+          country: getText(segment, ':scope > LAND1').toUpperCase()
+        };
+      };
+
+      const headerPartners = [...idoc.querySelectorAll(':scope > E1EDKA1')];
+      const invoicePartner = headerPartners.find(seg => getText(seg, ':scope > PARVW') === 'AG');
+
+      // Lieferadresse bevorzugt aus einer Position (dort kommt WE typischerweise mehrfach vor),
+      // Fallback auf den WE-Partner im Kopf.
+      const itemShipTo = [...idoc.querySelectorAll(':scope > E1EDP01 > E1EDPA1')]
+        .find(seg => getText(seg, ':scope > PARVW') === 'WE');
+      const headerShipTo = headerPartners.find(seg => getText(seg, ':scope > PARVW') === 'WE');
+
+      const invoiceAddress = readAddress(invoicePartner);
+      const deliveryAddress = readAddress(itemShipTo || headerShipTo);
+
+      const poRef = [...idoc.querySelectorAll(':scope > E1EDK02')]
+        .find(seg => getText(seg, ':scope > QUALF') === '001');
+      const po = getText(poRef, ':scope > BELNR') || getText(idoc, ':scope > E1EDK01 > BELNR');
+
+      const items = [...idoc.querySelectorAll(':scope > E1EDP01')].map(item => {
+        const itemTexts = [...item.querySelectorAll(':scope > E1EDP19')];
+        const skuSeg = itemTexts.find(seg => getText(seg, ':scope > QUALF') === '002');
+        const nameSeg = itemTexts.find(seg => getText(seg, ':scope > QUALF') === '001');
+
+        const fullIdtnr = getText(skuSeg, ':scope > IDTNR');
+        const idtnrParts = fullIdtnr.split('-');
+        const orderId = idtnrParts.length > 1 ? idtnrParts.pop() : '';
+        const sku = idtnrParts.join('-');
+        const qtyRaw = getText(item, ':scope > MENGE');
+        const qtyNumber = Number(qtyRaw);
+
+        return {
+          name: getText(nameSeg, ':scope > KTEXT'),
+          sku,
+          orderId,
+          qty: Number.isFinite(qtyNumber) ? String(qtyNumber) : qtyRaw,
+          price: getText(item, ':scope > VPREI')
+        };
+      }).filter(item => item.orderId || item.name || item.sku);
+
+      if (!items.length) throw new Error('Keine E1EDP01-Positionen mit POSEX gefunden.');
+
+      const totalSeg = [...idoc.querySelectorAll(':scope > E1EDS01')]
+        .find(seg => getText(seg, ':scope > SUMID') === '002');
+      const totalAmount = getText(totalSeg, ':scope > SUMME');
+
+      return { deliveryAddress, invoiceAddress, po, items, totalAmount };
+    }
+
+    function applyCxmlText(xmlText, sourceLabel = 'Eingefügter IDoc-Inhalt') {
+      const status = document.getElementById('importStatus');
+      status.className = 'import-status';
+      status.textContent = 'IDoc wird eingelesen ...';
+
+      try {
+        if (!xmlText || !xmlText.trim()) throw new Error('Bitte zuerst IDoc/XML einfügen oder eine Datei auswählen.');
+        const imported = parseIdoc(xmlText);
+        sourceIdocXmlText = xmlText;
+
+        applyAddressToForm('delivery', imported.deliveryAddress);
+        applyAddressToForm('invoice', imported.invoiceAddress);
+        if (imported.po) {
+          document.getElementById('po').value = imported.po;
+        }
+
+        articlesContainer.innerHTML = '';
+        totalAmountManuallyEdited = false;
+        totalAmountInput.value = '';
+        imported.items.forEach(item => addArticle(item));
+        if (imported.totalAmount) {
+          totalAmountInput.value = imported.totalAmount;
+          totalAmountManuallyEdited = true;
+        }
+        renumberArticles();
+        calculateTotalAmount();
+
+        status.className = 'import-status success';
+        status.textContent = `${sourceLabel}: ${imported.items.length} Artikel erfolgreich übernommen. Alle Felder können weiter bearbeitet werden.`;
+      } catch (error) {
+        status.className = 'import-status error';
+        status.textContent = `Import fehlgeschlagen: ${error.message}`;
+      }
+    }
+
+    async function importCxml(file) {
+      try {
+        const xmlText = await file.text();
+        document.getElementById('cxmlText').value = xmlText;
+        applyCxmlText(xmlText, file.name);
+      } catch (error) {
+        const status = document.getElementById('importStatus');
+        status.className = 'import-status error';
+        status.textContent = `Import fehlgeschlagen: ${error.message}`;
+      }
+    }
+
+    function val(selector, root = document) {
+      const el = root.querySelector(selector);
+      return el ? el.value.trim() : '';
+    }
+
+    function applyAddressToForm(prefix, address = {}) {
+      document.getElementById(`${prefix}-name1`).value = address.name1 || '';
+      document.getElementById(`${prefix}-extra`).value = address.extra || '';
+      document.getElementById(`${prefix}-street`).value = address.street || '';
+      document.getElementById(`${prefix}-postal`).value = address.postal || '';
+      document.getElementById(`${prefix}-city`).value = address.city || '';
+      document.getElementById(`${prefix}-country`).value = (address.country || '').toUpperCase();
+    }
+
+    function collectAddress(prefix) {
+      return {
+        name1: val(`#${prefix}-name1`),
+        extra: val(`#${prefix}-extra`),
+        street: val(`#${prefix}-street`),
+        postal: val(`#${prefix}-postal`),
+        city: val(`#${prefix}-city`),
+        country: val(`#${prefix}-country`).toUpperCase()
+      };
+    }
+
+    function collectData() {
+      return {
+        lieferadresse: collectAddress('delivery'),
+        rechnungsadresse: collectAddress('invoice'),
+        po: val('#po'),
+        totalAmount: val('#totalAmount'),
+        articles: [...document.querySelectorAll('.article')].map(a => ({
+          name: val('.article-name', a),
+          sku: val('.article-sku', a),
+          orderId: val('.article-order-id', a),
+          qty: val('.article-qty', a),
+          price: val('.article-price', a)
+        }))
+      };
+    }
+
+    function setDirectText(parent, tagName, value) {
+      let el = [...parent.children].find(child => child.tagName === tagName);
+      if (!el) {
+        el = parent.ownerDocument.createElement(tagName);
+        parent.appendChild(el);
+      }
+      el.textContent = value ?? '';
+    }
+
+    function updateAddressSegment(segment, address) {
+      if (!segment) return;
+      const a = address || {};
+      const extras = String(a.extra || '').split(/\r?\n/).map(v => v.trim()).filter(Boolean).slice(0, 3);
+      setDirectText(segment, 'NAME1', a.name1 || '');
+      if ([...segment.children].some(c => c.tagName === 'NAME2') || extras[0]) setDirectText(segment, 'NAME2', extras[0] || '');
+      if ([...segment.children].some(c => c.tagName === 'NAME3') || extras[1]) setDirectText(segment, 'NAME3', extras[1] || '');
+      if ([...segment.children].some(c => c.tagName === 'NAME4') || extras[2]) setDirectText(segment, 'NAME4', extras[2] || '');
+      setDirectText(segment, 'STRAS', a.street || '');
+      setDirectText(segment, 'ORT01', a.city || '');
+      setDirectText(segment, 'PSTLZ', a.postal || '');
+      setDirectText(segment, 'LAND1', (a.country || '').toUpperCase());
+    }
+
+    function ensureChild(parent, tagName, segmentAttr = false) {
+      let el = [...parent.children].find(child => child.tagName === tagName);
+      if (!el) {
+        el = parent.ownerDocument.createElement(tagName);
+        if (segmentAttr) el.setAttribute('SEGMENT', '1');
+        parent.appendChild(el);
+      }
+      return el;
+    }
+
+    function findSegmentByQualifier(parent, tagName, qualifierTag, qualifierValue) {
+      return [...parent.children].filter(el => el.tagName === tagName)
+        .find(el => getText(el, `:scope > ${qualifierTag}`) === qualifierValue);
+    }
+
+    function buildIdocXml() {
+      if (!sourceIdocXmlText.trim()) {
+        throw new Error('Bitte zuerst ein ORDERS05/IDoc importieren. Die Originaldatei wird als Strukturvorlage benötigt.');
+      }
+
+      const data = collectData();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(sourceIdocXmlText, 'application/xml');
+      if (xml.querySelector('parsererror')) throw new Error('Die ursprüngliche IDoc-Datei konnte nicht erneut gelesen werden.');
+      const idoc = xml.querySelector('IDOC');
+      if (!idoc) throw new Error('Kein IDOC-Element gefunden.');
+
+      // Kopf-/PO-Nummer aktualisieren.
+      const k01 = [...idoc.children].find(el => el.tagName === 'E1EDK01');
+      if (k01) setDirectText(k01, 'BELNR', data.po);
+      const poRef = findSegmentByQualifier(idoc, 'E1EDK02', 'QUALF', '001');
+      if (poRef) setDirectText(poRef, 'BELNR', data.po);
+
+      // AG = Rechnung, WE = Warenempfänger/Lieferadresse. LF (wir/Bereitsteller) bleibt unverändert erhalten.
+      const headerPartners = [...idoc.children].filter(el => el.tagName === 'E1EDKA1');
+      const ag = headerPartners.find(seg => getText(seg, ':scope > PARVW') === 'AG');
+      const weHeader = headerPartners.find(seg => getText(seg, ':scope > PARVW') === 'WE');
+      updateAddressSegment(ag, data.rechnungsadresse);
+      updateAddressSegment(weHeader, data.lieferadresse);
+
+      // Positionsvorlage aus dem Original übernehmen, damit ORDERS05-Untersegmente erhalten bleiben.
+      const oldItems = [...idoc.children].filter(el => el.tagName === 'E1EDP01');
+      if (!oldItems.length) throw new Error('Im Original-IDoc ist keine E1EDP01-Positionsvorlage vorhanden.');
+      const templateItem = oldItems[0].cloneNode(true);
+      oldItems.forEach(el => el.remove());
+
+      // Vor E1EDS01 einsetzen, wie in der Vorlage.
+      const summary = [...idoc.children].find(el => el.tagName === 'E1EDS01');
+      data.articles.forEach((item, index) => {
+        const seg = templateItem.cloneNode(true);
+        setDirectText(seg, 'POSEX', String(index + 1).padStart(5, '0'));
+        const qtyNum = Number(item.qty);
+        const idocQty = Number.isFinite(qtyNum) ? qtyNum.toFixed(3) : (item.qty || '');
+        setDirectText(seg, 'MENGE', idocQty);
+        setDirectText(seg, 'VPREI', item.price || '');
+        const qty = Number(item.qty), price = Number(item.price);
+        if (Number.isFinite(qty) && Number.isFinite(price)) setDirectText(seg, 'NETWR', String(Math.round(qty * price * 100) / 100));
+
+        const sched = [...seg.children].find(el => el.tagName === 'E1EDP20');
+        if (sched) setDirectText(sched, 'WMENG', idocQty);
+
+        const weItem = [...seg.children].filter(el => el.tagName === 'E1EDPA1')
+          .find(el => getText(el, ':scope > PARVW') === 'WE');
+        updateAddressSegment(weItem, data.lieferadresse);
+
+        let skuSeg = findSegmentByQualifier(seg, 'E1EDP19', 'QUALF', '002');
+        if (!skuSeg) {
+          skuSeg = xml.createElement('E1EDP19'); skuSeg.setAttribute('SEGMENT','1');
+          setDirectText(skuSeg, 'QUALF', '002'); seg.appendChild(skuSeg);
+        }
+        setDirectText(skuSeg, 'IDTNR', [item.sku, item.orderId].filter(Boolean).join('-'));
+
+        let nameSeg = findSegmentByQualifier(seg, 'E1EDP19', 'QUALF', '001');
+        if (!nameSeg) {
+          nameSeg = xml.createElement('E1EDP19'); nameSeg.setAttribute('SEGMENT','1');
+          setDirectText(nameSeg, 'QUALF', '001'); seg.appendChild(nameSeg);
+        }
+        setDirectText(nameSeg, 'KTEXT', item.name || '');
+
+        // F01-Text ebenfalls an die Artikelbezeichnung anpassen, falls vorhanden.
+        const textF01 = [...seg.children].filter(el => el.tagName === 'E1EDPT1')
+          .find(el => getText(el, ':scope > TDID') === 'F01');
+        const tdline = textF01?.querySelector(':scope > E1EDPT2 > TDLINE');
+        if (tdline) tdline.textContent = item.name || '';
+
+        idoc.insertBefore(seg, summary || null);
+      });
+
+      let sumSeg = [...idoc.children].filter(el => el.tagName === 'E1EDS01')
+        .find(el => getText(el, ':scope > SUMID') === '002');
+      if (!sumSeg) {
+        sumSeg = xml.createElement('E1EDS01'); sumSeg.setAttribute('SEGMENT','1');
+        setDirectText(sumSeg, 'SUMID', '002');
+        idoc.appendChild(sumSeg);
+      }
+      setDirectText(sumSeg, 'SUMME', data.totalAmount || '');
+      setDirectText(sumSeg, 'SUNIT', 'EUR');
+
+      const serialized = new XMLSerializer().serializeToString(xml);
+      return '<?xml version="1.0" encoding="UTF-8"?>\n' + serialized.replace(/></g, '>\n<');
+    }
+
+    function downloadIdoc() {
+      const status = document.getElementById('importStatus');
+      try {
+        const xmlText = buildIdocXml();
+        const data = collectData();
+        const blob = new Blob([xmlText], { type: 'application/xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const filenameSafe = (data.po || 'ORDERS05').replace(/[^a-z0-9_-]+/gi, '_');
+        a.href = url;
+        a.download = `${filenameSafe}_ORDERS05.xml`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        status.className = 'import-status success';
+        status.textContent = 'IDoc XML wurde erzeugt. LF/Bereitsteller bleibt aus der Originaldatei erhalten, wird aber nicht ins Formular gemappt.';
+      } catch (error) {
+        status.className = 'import-status error';
+        status.textContent = `Export fehlgeschlagen: ${error.message}`;
+      }
+    }
+
+    document.getElementById('addArticle').addEventListener('click', () => addArticle());
+    document.getElementById('generateIdoc').addEventListener('click', downloadIdoc);
+    document.getElementById('cxmlFile').addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (file) importCxml(file);
+    });
+    document.getElementById('importCxmlText').addEventListener('click', () => {
+      applyCxmlText(document.getElementById('cxmlText').value);
+    });
+    totalAmountInput.addEventListener('input', () => {
+      totalAmountManuallyEdited = totalAmountInput.value !== '';
+      if (!totalAmountManuallyEdited) calculateTotalAmount();
+    });
+
+    addArticle();
+  </script>
+</body>
+</html>
