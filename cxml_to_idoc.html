@@ -609,7 +609,14 @@
         invoiceAddress.city = 'Berlin';
       }
 
-      const deliveryAddress = readCxmlAddress(header.querySelector(':scope > ShipTo'));
+      // Lieferadresse: zuerst echtes ShipTo verwenden.
+      // Falls das cXML kein ShipTo enthält, wird BillTo als Fallback genutzt,
+      // damit die WE-Felder nicht leer bleiben. Dabei greift auch die billing_-
+      // Platzhalterlogik, sodass keine billing_* Testwerte übernommen werden.
+      const shipToContainer = header.querySelector(':scope > ShipTo');
+      const deliveryAddress = shipToContainer
+        ? readCxmlAddress(shipToContainer)
+        : { ...invoiceAddress };
 
       const items = [...orderRequest.querySelectorAll(':scope > ItemOut')].map(item => {
         const supplierPartId = getText(item, ':scope > ItemID > SupplierPartID');
