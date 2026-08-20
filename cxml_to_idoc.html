@@ -449,6 +449,8 @@
     let totalAmountManuallyEdited = false;
     let sourceIdocXmlText = ''; // zuletzt importiertes cXML
     let importedCurrency = 'EUR';
+    let importedDeliveryEmail = '';
+    let importedInvoiceEmail = '';
 
     function calculateTotalAmount() {
       if (totalAmountManuallyEdited) return;
@@ -573,7 +575,7 @@
       const readCxmlAddress = (container) => {
         const address = container?.querySelector(':scope > Address');
         const postal = address?.querySelector(':scope > PostalAddress');
-        if (!postal) return { name1:'', extra:'', street:'', postal:'', city:'', country:'' };
+        if (!postal) return { name1:'', extra:'', street:'', postal:'', city:'', country:'', email:'' };
         const deliverTo = [...postal.querySelectorAll(':scope > DeliverTo')].map(x => x.textContent.trim()).filter(Boolean);
         const name = address.querySelector(':scope > Name')?.textContent?.trim() || '';
         const street = [...postal.querySelectorAll(':scope > Street')].map(x => x.textContent.trim()).filter(Boolean).join(' ');
@@ -584,7 +586,8 @@
           street,
           postal: getText(postal, ':scope > PostalCode'),
           city: getText(postal, ':scope > City'),
-          country: (country?.getAttribute('isoCountryCode') || '').toUpperCase()
+          country: (country?.getAttribute('isoCountryCode') || '').toUpperCase(),
+          email: getText(address, ':scope > Email') || getText(postal, ':scope > Email')
         };
       };
 
@@ -649,6 +652,8 @@
         const imported = parseCxml(xmlText);
         sourceIdocXmlText = xmlText;
         importedCurrency = imported.currency || 'EUR';
+        importedDeliveryEmail = imported.deliveryAddress?.email || '';
+        importedInvoiceEmail = imported.invoiceAddress?.email || '';
         applyAddressToForm('delivery', imported.deliveryAddress);
         applyAddressToForm('invoice', imported.invoiceAddress);
         document.getElementById('po').value = imported.po || '';
@@ -723,22 +728,77 @@
       const data = collectData();
       if (!data.po) throw new Error('PO-Nummer fehlt.');
       if (!data.articles.length) throw new Error('Keine Artikel vorhanden.');
+
+      // Zielprofil nach dem vom Kunden erfolgreich verarbeiteten thyssenkrupp-ORDERS05.
+      const cfg = {
+        MANDT: '100', DOCREL: '740', STATUS: '30', DIRECT: '1', OUTMOD: '2',
+        SNDPOR: 'SAP100', SNDPRT: 'LS', SNDPRN: 'P1UCLNT100',
+        RCVPOR: 'DAPROHPO', RCVPRT: 'LS', RCVPRN: 'DPGCLNT001',
+        BSART: 'YARI', RECIPNT_NO: '3010144944',
+        VKORG: '341', WERKS: '10O2', DOCORG: '2505',
+        LF_PARTN: '3010144944'
+      };
+
       const now = new Date();
-      const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
-      const hms = now.toISOString().slice(11,19).replace(/:/g,'');
+      const localDate = new Date(now.getTime() - now.getTimezoneOffset()*60000);
+      const ymd = localDate.toISOString().slice(0,10).replace(/-/g,'');
+      const hms = localDate.toISOString().slice(11,19).replace(/:/g,'');
+      const serial = `${ymd}${hms}`;
+      const delivery = new Date(now);
+      delivery.setDate(delivery.getDate() + 4);
+      const deliveryLocal = new Date(delivery.getTime() - delivery.getTimezoneOffset()*60000);
+      const deliveryYmd = deliveryLocal.toISOString().slice(0,10).replace(/-/g,'');
+
+      const we = data.lieferadresse;
+      const weExtras = String(we.extra || '').split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
+      const weContact = weExtras[0] || '';
+      const weEmail = importedDeliveryEmail || '';
+
+      const lf = `    <E1EDKA1 SEGMENT="1"><PARVW>LF</PARVW><PARTN>${cfg.LF_PARTN}</PARTN><NAME1>Prominate GmbH</NAME1><STRAS>Prinzenstr. 2a</STRAS><ORT01>Solingen</ORT01><PSTLZ>42697</PSTLZ><LAND1>DE</LAND1><TELF1>4921265830</TELF1><TELFX>4921265837000</TELFX><ILNNR>tk.edi@prominate-platform.com</ILNNR><E1EDKA3 SEGMENT="1"><QUALP>ZBC</QUALP><STDPN>tk.edi@prominate-platform.com</STDPN></E1EDKA3></E1EDKA1>`;
+
+      const weHeader = (we.name1 || we.street) ? `    <E1EDKA1 SEGMENT="1"><PARVW>WE</PARVW><LIFNR>${cfg.WERKS}</LIFNR><NAME1>${xmlEsc(we.name1)}</NAME1><NAME2>${xmlEsc(weExtras[0]||'')}</NAME2><NAME3>${xmlEsc(weExtras[1]||'')}</NAME3><NAME4>${xmlEsc(weExtras[2]||'')}</NAME4><STRAS>${xmlEsc(we.street)}</STRAS><ORT01>${xmlEsc(we.city)}</ORT01><PSTLZ>${xmlEsc(we.postal)}</PSTLZ><LAND1>${xmlEsc(we.country)}</LAND1>${weContact?`<ABLAD>${xmlEsc(weContact)}</ABLAD><ORGTX>${xmlEsc(weContact)}</ORGTX>`:''}${weEmail?`<ILNNR>${xmlEsc(weEmail)}</ILNNR>`:''}<SPRAS_ISO>en</SPRAS_ISO></E1EDKA1>` : '';
+
       const items = data.articles.map((item,index) => {
         const q=Number(item.qty||0), p=Number(item.price||0);
         const qty = Number.isFinite(q) ? q.toFixed(3) : xmlEsc(item.qty);
-        const net = Number.isFinite(q*p) ? (q*p).toFixed(2) : '';
-        return `    <E1EDP01 SEGMENT="1">\n      <POSEX>${String(index+1).padStart(5,'0')}</POSEX>\n      <MENGE>${qty}</MENGE>\n      <MENEE>EA</MENEE>\n      <VPREI>${xmlEsc(item.price)}</VPREI>\n      <NETWR>${net}</NETWR>\n      <E1EDP19 SEGMENT="1"><QUALF>002</QUALF><IDTNR>${xmlEsc(item.sku)}</IDTNR></E1EDP19>\n      <E1EDP19 SEGMENT="1"><QUALF>001</QUALF><KTEXT>${xmlEsc(item.name)}</KTEXT></E1EDP19>\n      <E1EDPA1 SEGMENT="1"><PARVW>WE</PARVW><NAME1>${xmlEsc(data.lieferadresse.name1)}</NAME1><STRAS>${xmlEsc(data.lieferadresse.street)}</STRAS><ORT01>${xmlEsc(data.lieferadresse.city)}</ORT01><PSTLZ>${xmlEsc(data.lieferadresse.postal)}</PSTLZ><LAND1>${xmlEsc(data.lieferadresse.country)}</LAND1></E1EDPA1>\n    </E1EDP01>`;
+        const netNum = q*p;
+        const net = Number.isFinite(netNum) ? String(Math.round(netNum*100)/100) : '';
+        const fullId = [item.sku, item.orderId].filter(Boolean).join('-');
+        const posex = String((index+1)*10).padStart(5,'0');
+        const itemWe = `<E1EDPA1 SEGMENT="1"><PARVW>WE</PARVW><LIFNR>${cfg.WERKS}</LIFNR><NAME1>${xmlEsc(we.name1)}</NAME1><NAME2>${xmlEsc(weExtras[0]||'')}</NAME2><NAME4>${xmlEsc(weExtras[2]||'')}</NAME4><STRAS>${xmlEsc(we.street)}</STRAS><ORT01>${xmlEsc(we.city)}</ORT01><PSTLZ>${xmlEsc(we.postal)}</PSTLZ><LAND1>${xmlEsc(we.country)}</LAND1>${weContact?`<ORGTX>${xmlEsc(weContact)}</ORGTX>`:''}${weEmail?`<ILNNR>${xmlEsc(weEmail)}</ILNNR>`:''}<SPRAS_ISO>en</SPRAS_ISO></E1EDPA1>`;
+        const f06 = weEmail ? `<E1EDPT1 SEGMENT="1"><TDID>F06</TDID><TSSPRAS_ISO>DE</TSSPRAS_ISO><E1EDPT2 SEGMENT="1"><TDLINE>${xmlEsc(weEmail)}</TDLINE></E1EDPT2></E1EDPT1>` : '';
+        return `    <E1EDP01 SEGMENT="1"><POSEX>${posex}</POSEX><ACTION>001</ACTION><PSTYP>0</PSTYP><KZABS>X</KZABS><MENGE>${qty}</MENGE><MENEE>EA</MENEE><BMNG2>1.000</BMNG2><PMENE>EA</PMENE><VPREI>${xmlEsc(item.price)}</VPREI><PEINH>1</PEINH><NETWR>${net}</NETWR><WERKS>${cfg.WERKS}</WERKS><E1EDP20 SEGMENT="1"><WMENG>${qty}</WMENG><EDATU>${deliveryYmd}</EDATU></E1EDP20>${itemWe}<E1EDP19 SEGMENT="1"><QUALF>002</QUALF><IDTNR>${xmlEsc(fullId)}</IDTNR></E1EDP19><E1EDP19 SEGMENT="1"><QUALF>001</QUALF><KTEXT>${xmlEsc(item.name)}</KTEXT></E1EDP19><E1EDPT1 SEGMENT="1"><TDID>F01</TDID><TSSPRAS_ISO>DE</TSSPRAS_ISO><E1EDPT2 SEGMENT="1"><TDLINE>${xmlEsc(item.name)}</TDLINE></E1EDPT2></E1EDPT1>${f06}</E1EDP01>`;
       }).join('\n');
-      return `<?xml version="1.0" encoding="UTF-8"?>\n<ORDERS05>\n  <IDOC BEGIN="1">\n    <EDI_DC40 SEGMENT="1">\n      <TABNAM>EDI_DC40</TABNAM><DIRECT>2</DIRECT><IDOCTYP>ORDERS05</IDOCTYP><MESTYP>ORDERS</MESTYP><CREDAT>${ymd}</CREDAT><CRETIM>${hms}</CRETIM>\n    </EDI_DC40>\n    <E1EDK01 SEGMENT="1"><ACTION>000</ACTION><CURCY>${xmlEsc(data.currency)}</CURCY><BELNR>${xmlEsc(data.po)}</BELNR></E1EDK01>\n    <E1EDK02 SEGMENT="1"><QUALF>001</QUALF><BELNR>${xmlEsc(data.po)}</BELNR></E1EDK02>\n${idocAddress('AG', data.rechnungsadresse)}\n${data.lieferadresse.name1||data.lieferadresse.street ? idocAddress('WE', data.lieferadresse) : ''}\n${items}\n    <E1EDS01 SEGMENT="1"><SUMID>002</SUMID><SUMME>${xmlEsc(data.totalAmount)}</SUMME><SUNIT>${xmlEsc(data.currency)}</SUNIT></E1EDS01>\n  </IDOC>\n</ORDERS05>`;
+
+      return `<?xml version="1.0" encoding="UTF-8"?>\n<ORDERS05><IDOC BEGIN="1"><EDI_DC40 SEGMENT="1"><TABNAM>EDI_DC40</TABNAM><MANDT>${cfg.MANDT}</MANDT><DOCREL>${cfg.DOCREL}</DOCREL><STATUS>${cfg.STATUS}</STATUS><DIRECT>${cfg.DIRECT}</DIRECT><OUTMOD>${cfg.OUTMOD}</OUTMOD><IDOCTYP>ORDERS05</IDOCTYP><MESTYP>ORDERS</MESTYP><SNDPOR>${cfg.SNDPOR}</SNDPOR><SNDPRT>${cfg.SNDPRT}</SNDPRT><SNDPRN>${cfg.SNDPRN}</SNDPRN><RCVPOR>${cfg.RCVPOR}</RCVPOR><RCVPRT>${cfg.RCVPRT}</RCVPRT><RCVPRN>${cfg.RCVPRN}</RCVPRN><CREDAT>${ymd}</CREDAT><CRETIM>${hms}</CRETIM><SERIAL>${serial}</SERIAL></EDI_DC40><E1EDK01 SEGMENT="1"><KZABS>X</KZABS><CURCY>${xmlEsc(data.currency)}</CURCY><HWAER>${xmlEsc(data.currency)}</HWAER><ZTERM></ZTERM><BSART>${cfg.BSART}</BSART><BELNR>${xmlEsc(data.po)}</BELNR><RECIPNT_NO>${cfg.RECIPNT_NO}</RECIPNT_NO></E1EDK01><E1EDK14 SEGMENT="1"><QUALF>014</QUALF></E1EDK14><E1EDK14 SEGMENT="1"><QUALF>009</QUALF><ORGID>${cfg.VKORG}</ORGID></E1EDK14><E1EDK14 SEGMENT="1"><QUALF>011</QUALF><ORGID>${cfg.DOCORG}</ORGID></E1EDK14><E1EDK14 SEGMENT="1"><QUALF>013</QUALF><ORGID>${cfg.BSART}</ORGID></E1EDK14><E1EDK03 SEGMENT="1"><IDDAT>012</IDDAT><DATUM>${ymd}</DATUM></E1EDK03><E1EDK03 SEGMENT="1"><IDDAT>011</IDDAT><DATUM>${ymd}</DATUM></E1EDK03>${idocAddress('AG', data.rechnungsadresse)}\n${lf}\n${weHeader}\n    <E1EDK02 SEGMENT="1"><QUALF>001</QUALF><BELNR>${xmlEsc(data.po)}</BELNR><DATUM>${ymd}</DATUM><UZEIT>000000</UZEIT></E1EDK02><E1EDK18 SEGMENT="1"><QUALF>001</QUALF><TAGE>14</TAGE><PRZNT>0.000</PRZNT></E1EDK18>\n${items}\n    <E1EDS01 SEGMENT="1"><SUMID>002</SUMID><SUMME>${xmlEsc(data.totalAmount)}</SUMME><SUNIT>${xmlEsc(data.currency)}</SUNIT></E1EDS01></IDOC></ORDERS05>`;
+    }
+
+    function prettyPrintXml(xmlText) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+      if (xmlDoc.querySelector('parsererror')) return xmlText;
+
+      const serialized = new XMLSerializer().serializeToString(xmlDoc);
+      const compact = serialized.replace(/>\s*</g, '><').trim();
+      const tokens = compact.replace(/></g, '>\n<').split('\n');
+      let indent = 0;
+      const lines = [];
+
+      for (const token of tokens) {
+        const line = token.trim();
+        if (!line) continue;
+        if (/^<\//.test(line)) indent = Math.max(0, indent - 1);
+        lines.push('  '.repeat(indent) + line);
+        if (/^<[^!?/][^>]*[^/]>$/.test(line) && !/<\/[^>]+>$/.test(line)) indent += 1;
+      }
+
+      return lines.join('\n') + '\n';
     }
 
     function downloadIdoc() {
       const status = document.getElementById('importStatus');
       try {
-        const xmlText = buildIdocXml();
+        const xmlText = prettyPrintXml(buildIdocXml());
         const data = collectData();
         const blob = new Blob([xmlText], { type: 'application/xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
