@@ -495,10 +495,17 @@
       article.querySelector('.removeArticle').addEventListener('click', (e) => {
         e.target.closest('.article').remove();
         renumberArticles();
+        totalAmountManuallyEdited = false;
         calculateTotalAmount();
       });
-      article.querySelector('.article-qty').addEventListener('input', calculateTotalAmount);
-      article.querySelector('.article-price').addEventListener('input', calculateTotalAmount);
+      article.querySelector('.article-qty').addEventListener('input', () => {
+        totalAmountManuallyEdited = false;
+        calculateTotalAmount();
+      });
+      article.querySelector('.article-price').addEventListener('input', () => {
+        totalAmountManuallyEdited = false;
+        calculateTotalAmount();
+      });
       articlesContainer.appendChild(node);
       renumberArticles();
       calculateTotalAmount();
@@ -814,7 +821,10 @@
       }
     }
 
-    document.getElementById('addArticle').addEventListener('click', () => addArticle());
+    document.getElementById('addArticle').addEventListener('click', () => {
+      totalAmountManuallyEdited = false;
+      addArticle();
+    });
     document.getElementById('generateIdoc').addEventListener('click', downloadIdoc);
     document.getElementById('cxmlFile').addEventListener('change', (event) => {
       const file = event.target.files?.[0];
