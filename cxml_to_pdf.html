@@ -347,8 +347,8 @@
         <div class="field">
           <label for="rechnungsadresse">Rechnungsadresse</label>
           <textarea id="rechnungsadresse" placeholder="Firma, Straße, PLZ, Ort, Land">DTA TEST RE
-Musterstrasse 2a
-DE-12345 Berlin
+Prinzenstrasse 2a
+DE-42697 Solingen
 Germany</textarea>
         </div>
       </div>
@@ -380,6 +380,15 @@ Germany</textarea>
           <input id="totalAmount" type="number" min="0" step="0.01" placeholder="0.00" />
           <div class="hint">Wird automatisch aus Stückzahl × Summe pro Stück berechnet. Du kannst den Wert auch manuell eintragen.</div>
         </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Kommentar</h2>
+      <div class="field">
+        <label for="comment">Kommentar / Freitext</label>
+        <textarea id="comment" placeholder="Optionaler Kommentar zur Bestellung"></textarea>
+        <div class="hint">Der Kommentar wird in der PDF nach allen anderen Bestelldaten ausgegeben.</div>
       </div>
     </section>
 
@@ -608,6 +617,7 @@ Germany</textarea>
         vatid: val('#vatid'),
         po: val('#po'),
         totalAmount: val('#totalAmount'),
+        comment: val('#comment'),
         articles: [...document.querySelectorAll('.article')].map(a => ({
           name: val('.article-name', a),
           sku: val('.article-sku', a),
@@ -715,6 +725,23 @@ Germany</textarea>
       doc.setFont('helvetica', 'normal');
       const totalDisplay = data.totalAmount !== '' ? `${Number(data.totalAmount).toFixed(2)} EUR` : '-';
       doc.text(totalDisplay, margin + 62, y);
+
+      if (data.comment) {
+        y += 12;
+        ensureSpace(28);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text('Kommentar', margin, y);
+        y += 7;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        const commentLines = doc.splitTextToSize(data.comment, contentWidth);
+        commentLines.forEach(line => {
+          ensureSpace(6);
+          doc.text(line, margin, y);
+          y += 5;
+        });
+      }
 
       const filenameSafe = (data.po || 'Bestellung').replace(/[^a-z0-9_-]+/gi, '_');
       doc.save(`${filenameSafe}.pdf`);
