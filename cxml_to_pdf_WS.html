@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cXML PunchOutOrderMessage zu PDF</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --bg-soft: #111827;
+      --card: #151d2e;
+      --card-2: #182235;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --border: #2b364b;
+      --accent: #3b82f6;
+      --accent-dark: #2563eb;
+      --accent-soft: rgba(59,130,246,.12);
+      --danger: #f87171;
+      --success: #34d399;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(37,99,235,.13), transparent 28%),
+        linear-gradient(180deg, #0b1120 0%, #0d1424 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 42px 22px 56px;
+    }
+
+    .header {
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      margin: 0 0 7px;
+      font-size: 34px;
+      letter-spacing: -.02em;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(24,34,53,.96), rgba(21,29,46,.96));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.18);
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 750;
+      margin: 0 0 16px;
+      letter-spacing: -.01em;
+    }
+
+    .upload-card {
+      padding: 16px 18px;
+      background: rgba(18, 28, 45, .88);
+      border-color: #30405b;
+    }
+
+    .upload-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .upload-copy {
+      min-width: 220px;
+      flex: 1 1 360px;
+    }
+
+    .upload-copy .section-title {
+      margin-bottom: 4px;
+    }
+
+    .upload-copy .hint {
+      margin: 0;
+      max-width: 650px;
+    }
+
+    .upload-control {
+      flex: 0 0 auto;
+      width: min(100%, 310px);
+    }
+
+    .file-input {
+      width: 100%;
+      padding: 7px;
+      font-size: 13px;
+      color: var(--muted);
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 9px;
+    }
+
+    .file-input::file-selector-button {
+      border: 0;
+      border-radius: 7px;
+      padding: 8px 10px;
+      margin-right: 10px;
+      background: var(--accent-soft);
+      color: #bfdbfe;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .import-status {
+      margin-top: 9px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .import-status.success { color: var(--success); }
+    .import-status.error { color: var(--danger); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    label {
+      font-weight: 700;
+      font-size: 13px;
+      color: #dbe4f0;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid #344158;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 14px;
+      color: var(--text);
+      background: #0f172a;
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    input::placeholder, textarea::placeholder { color: #667085; }
+
+    textarea {
+      min-height: 112px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.14);
+      background: #111b30;
+    }
+
+    .article {
+      position: relative;
+      border: 1px solid #2d3a50;
+      border-radius: 13px;
+      padding: 18px;
+      margin-top: 14px;
+      background: #111827;
+    }
+
+    .article-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .article-title {
+      font-weight: 750;
+      color: #e5e7eb;
+    }
+
+    .article-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1.25fr .7fr .9fr;
+      gap: 12px;
+    }
+
+    .total-box {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: minmax(240px, 360px);
+      justify-content: end;
+    }
+
+    .total-box input {
+      font-size: 17px;
+      font-weight: 750;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 9px;
+      padding: 10px 15px;
+      font-size: 14px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform .12s ease, background .15s ease, border-color .15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(37,99,235,.22);
+    }
+
+    .btn-primary:hover { background: var(--accent-dark); }
+
+    .btn-secondary {
+      background: #18243a;
+      border-color: #334155;
+      color: #bfdbfe;
+    }
+
+    .btn-secondary:hover { background: #1e2d48; }
+
+    .btn-remove {
+      background: rgba(248,113,113,.08);
+      border-color: rgba(248,113,113,.18);
+      color: #fca5a5;
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.45;
+      margin-top: 8px;
+    }
+
+
+    .paste-import {
+      margin-top: 14px;
+      display: grid;
+      gap: 9px;
+    }
+
+    .paste-import label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .cxml-text {
+      min-height: 110px;
+      max-height: 240px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .paste-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 850px) {
+      .grid-2, .article-grid { grid-template-columns: 1fr; }
+      .upload-control { width: 100%; }
+      .page { padding: 26px 14px 40px; }
+      .header h1 { font-size: 29px; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      .page { max-width: none; margin: 0; padding: 0; }
+      .card { box-shadow: none; border: 0; background: #fff; }
+      .actions, .btn-remove, .hint, .header p, .upload-card { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="header">
+      <h1>cxml to pdf WS</h1>
+      <p>PunchOutOrderMessage-cXML importieren, prüfen und anschließend als PDF erzeugen.</p>
+    </div>
+
+    <section class="card upload-card">
+      <div class="upload-top">
+        <div class="upload-copy">
+          <h2 class="section-title">cXML importieren <span style="color:var(--muted); font-weight:600;">(optional)</span></h2>
+          <div class="hint">Für PunchOutOrderMessage: übernimmt Lieferadresse, SupplierOrderInfo orderID als PO, Header-Total und alle ItemIn-Positionen. Alle Werte bleiben anschließend bearbeitbar; die Rechnungsadresse bleibt unverändert.</div>
+        </div>
+        <div class="upload-control">
+          <input class="file-input" id="cxmlFile" type="file" accept=".cxml,.xml,.txt,text/xml,application/xml" aria-label="cXML Datei auswählen" />
+        </div>
+      </div>
+      <div class="paste-import">
+        <label for="cxmlText">Oder cXML-Inhalt direkt einfügen</label>
+        <textarea id="cxmlText" class="cxml-text" placeholder="&lt;cXML&gt; ... &lt;/cXML&gt;"></textarea>
+        <div class="paste-actions">
+          <button type="button" class="btn-secondary" id="importCxmlText">cXML aus Text übernehmen</button>
+        </div>
+      </div>
+      <div id="importStatus" class="import-status" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Adressdaten</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="lieferadresse">Lieferadresse</label>
+          <textarea id="lieferadresse" placeholder="Firma, Straße, PLZ, Ort, Land"></textarea>
+        </div>
+        <div class="field">
+          <label for="rechnungsadresse">Rechnungsadresse</label>
+          <textarea id="rechnungsadresse" placeholder="Firma, Straße, PLZ, Ort, Land">DTA TEST RE
+Prinzenstrasse 2a
+DE-42697 Solingen
+Germany</textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Bestelldaten</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label for="vatid">VAT ID</label>
+          <input id="vatid" type="text" value="DE123456789" />
+        </div>
+        <div class="field">
+          <label for="po">Bestellung / PO Nummer</label>
+          <input id="po" type="text" placeholder="z. B. PO-2026-001" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Artikel</h2>
+      <div id="articles"></div>
+      <div class="actions">
+        <button type="button" class="btn-secondary" id="addArticle">+ Artikel hinzufügen</button>
+      </div>
+      <div class="total-box">
+        <div class="field">
+          <label for="totalAmount">Total Amount (Bestellwert)</label>
+          <input id="totalAmount" type="number" min="0" step="0.01" placeholder="0.00" />
+          <div class="hint">Wird automatisch aus Stückzahl × Summe pro Stück berechnet. Du kannst den Wert auch manuell eintragen.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Kommentar</h2>
+      <div class="field">
+        <label for="comment">Kommentar / Freitext</label>
+        <textarea id="comment" placeholder="Optionaler Kommentar zur Bestellung"></textarea>
+        <div class="hint">Der Kommentar wird in der PDF nach allen anderen Bestelldaten ausgegeben.</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="actions">
+        <button type="button" class="btn-primary" id="generatePdf">Generate PDF</button>
+      </div>
+      <div class="hint">Die PDF wird direkt im Browser erstellt. Dafür ist keine Acrobat-Lizenz nötig.</div>
+    </section>
+  </main>
+
+  <template id="articleTemplate">
+    <div class="article">
+      <div class="article-head">
+        <div class="article-title">Artikel <span class="article-number"></span></div>
+        <button type="button" class="btn-remove removeArticle">Entfernen</button>
+      </div>
+      <div class="article-grid">
+        <div class="field">
+          <label>Artikelbezeichnung</label>
+          <input type="text" class="article-name" />
+        </div>
+        <div class="field">
+          <label>SKU</label>
+          <input type="text" class="article-sku" />
+        </div>
+        <div class="field">
+          <label>Order-Id</label>
+          <input type="text" class="article-order-id" />
+        </div>
+        <div class="field">
+          <label>Stückzahl</label>
+          <input type="number" min="0" step="1" class="article-qty" />
+        </div>
+        <div class="field">
+          <label>Summe pro Stück</label>
+          <input type="number" min="0" step="0.01" class="article-price" />
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const articlesContainer = document.getElementById('articles');
+    const template = document.getElementById('articleTemplate');
+    const totalAmountInput = document.getElementById('totalAmount');
+    let totalAmountManuallyEdited = false;
+
+    function calculateTotalAmount() {
+      if (totalAmountManuallyEdited) return;
+
+      let total = 0;
+      let hasCalculableItem = false;
+
+      [...articlesContainer.querySelectorAll('.article')].forEach(article => {
+        const qtyRaw = article.querySelector('.article-qty').value;
+        const priceRaw = article.querySelector('.article-price').value;
+        if (qtyRaw !== '' && priceRaw !== '') {
+          const qty = Number(qtyRaw);
+          const price = Number(priceRaw);
+          if (Number.isFinite(qty) && Number.isFinite(price)) {
+            total += qty * price;
+            hasCalculableItem = true;
+          }
+        }
+      });
+
+      totalAmountInput.value = hasCalculableItem ? total.toFixed(2) : '';
+    }
+
+    function renumberArticles() {
+      [...articlesContainer.querySelectorAll('.article')].forEach((article, index) => {
+        article.querySelector('.article-number').textContent = index + 1;
+        article.querySelector('.removeArticle').style.display =
+          articlesContainer.children.length === 1 ? 'none' : 'inline-block';
+      });
+    }
+
+    function addArticle(data = {}) {
+      const node = template.content.cloneNode(true);
+      const article = node.querySelector('.article');
+
+      article.querySelector('.article-name').value = data.name ?? '';
+      article.querySelector('.article-sku').value = data.sku ?? '';
+      article.querySelector('.article-order-id').value = data.orderId ?? '';
+      article.querySelector('.article-qty').value = data.qty ?? '';
+      article.querySelector('.article-price').value = data.price ?? '';
+
+      article.querySelector('.removeArticle').addEventListener('click', (e) => {
+        e.target.closest('.article').remove();
+        renumberArticles();
+        calculateTotalAmount();
+      });
+      article.querySelector('.article-qty').addEventListener('input', calculateTotalAmount);
+      article.querySelector('.article-price').addEventListener('input', calculateTotalAmount);
+      articlesContainer.appendChild(node);
+      renumberArticles();
+      calculateTotalAmount();
+    }
+
+    function getText(parent, selector) {
+      const el = parent?.querySelector(selector);
+      return el?.textContent?.trim() ?? '';
+    }
+
+    function countryNameFromIso(isoCode, fallback = '') {
+      const iso = (isoCode || '').trim().toUpperCase();
+      const names = {
+        DE: 'Germany', AT: 'Austria', CH: 'Switzerland',
+        FR: 'France', NL: 'Netherlands', BE: 'Belgium',
+        IT: 'Italy', ES: 'Spain', PL: 'Poland',
+        GB: 'United Kingdom', UK: 'United Kingdom', US: 'United States'
+      };
+      return fallback || names[iso] || iso;
+    }
+
+    function formatShipTo(shipTo) {
+      if (!shipTo) return '';
+
+      const address = shipTo.querySelector('Address');
+      const postal = address?.querySelector('PostalAddress');
+      if (!postal) return '';
+
+      const lines = [];
+      const deliverTo = [...postal.querySelectorAll('DeliverTo')]
+        .map(el => el.textContent.trim())
+        .filter(Boolean);
+      const street = getText(postal, 'Street');
+      const city = getText(postal, 'City');
+      const state = getText(postal, 'State');
+      const postalCode = getText(postal, 'PostalCode');
+      const countryEl = postal.querySelector('Country');
+      const countryText = countryEl?.textContent?.trim() || '';
+      const countryIso = countryEl?.getAttribute('isoCountryCode') || '';
+
+      lines.push(...deliverTo);
+      if (street) lines.push(street);
+
+      const cityLineParts = [];
+      if (postalCode) {
+        cityLineParts.push(countryIso ? `${countryIso.toUpperCase()}-${postalCode}` : postalCode);
+      }
+      if (city) cityLineParts.push(city);
+      if (state) cityLineParts.push(state);
+      if (cityLineParts.length) lines.push(cityLineParts.join(' '));
+
+      const country = countryNameFromIso(countryIso, countryText);
+      if (country) lines.push(country);
+
+      return lines.join('\n');
+    }
+
+    function parseCxml(xmlText) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, 'application/xml');
+      const parserError = xml.querySelector('parsererror');
+      if (parserError) throw new Error('Die Datei ist keine gültige XML/cXML-Datei.');
+
+      const punchOut = xml.querySelector('PunchOutOrderMessage');
+      if (!punchOut) throw new Error('Kein PunchOutOrderMessage in der cXML gefunden.');
+
+      const header = punchOut.querySelector('PunchOutOrderMessageHeader');
+      if (!header) throw new Error('Kein PunchOutOrderMessageHeader in der cXML gefunden.');
+
+      const shipTo = header.querySelector('ShipTo');
+      const deliveryAddress = formatShipTo(shipTo);
+
+      const supplierOrderInfo = header.querySelector('SupplierOrderInfo');
+      const po = supplierOrderInfo?.getAttribute('orderID') || '';
+      const totalAmount = getText(header, ':scope > Total > Money');
+
+      const items = [...punchOut.querySelectorAll(':scope > ItemIn')].map(item => ({
+        name: getText(item, 'ItemDetail > Description'),
+        sku: getText(item, 'ItemID > SupplierPartID'),
+        orderId: getText(item, 'ItemID > SupplierPartAuxiliaryID'),
+        qty: item.getAttribute('quantity') || '',
+        price: getText(item, 'ItemDetail > UnitPrice > Money')
+      }));
+
+      if (!items.length) throw new Error('Keine ItemIn-Positionen in der cXML gefunden.');
+      return { deliveryAddress, items, po, totalAmount };
+    }
+
+    function applyCxmlText(xmlText, sourceLabel = 'Eingefügter cXML-Inhalt') {
+      const status = document.getElementById('importStatus');
+      status.className = 'import-status';
+      status.textContent = 'cXML wird eingelesen ...';
+
+      try {
+        if (!xmlText || !xmlText.trim()) throw new Error('Bitte zuerst cXML einfügen oder eine Datei auswählen.');
+        const imported = parseCxml(xmlText);
+
+        if (imported.deliveryAddress) {
+          document.getElementById('lieferadresse').value = imported.deliveryAddress;
+        }
+        if (imported.po) {
+          document.getElementById('po').value = imported.po;
+        }
+
+        articlesContainer.innerHTML = '';
+        totalAmountManuallyEdited = false;
+        totalAmountInput.value = '';
+        imported.items.forEach(item => addArticle(item));
+        renumberArticles();
+
+        if (imported.totalAmount !== '' && Number.isFinite(Number(imported.totalAmount))) {
+          totalAmountInput.value = Number(imported.totalAmount).toFixed(2);
+          totalAmountManuallyEdited = true;
+        } else {
+          calculateTotalAmount();
+        }
+
+        status.className = 'import-status success';
+        status.textContent = `${sourceLabel}: ${imported.items.length} Artikel erfolgreich übernommen. Alle Felder können weiter bearbeitet werden.`;
+      } catch (error) {
+        status.className = 'import-status error';
+        status.textContent = `Import fehlgeschlagen: ${error.message}`;
+      }
+    }
+
+    async function importCxml(file) {
+      try {
+        const xmlText = await file.text();
+        document.getElementById('cxmlText').value = xmlText;
+        applyCxmlText(xmlText, file.name);
+      } catch (error) {
+        const status = document.getElementById('importStatus');
+        status.className = 'import-status error';
+        status.textContent = `Import fehlgeschlagen: ${error.message}`;
+      }
+    }
+
+    function val(selector, root = document) {
+      const el = root.querySelector(selector);
+      return el ? el.value.trim() : '';
+    }
+
+    function collectData() {
+      return {
+        lieferadresse: val('#lieferadresse'),
+        rechnungsadresse: val('#rechnungsadresse'),
+        vatid: val('#vatid'),
+        po: val('#po'),
+        totalAmount: val('#totalAmount'),
+        comment: val('#comment'),
+        articles: [...document.querySelectorAll('.article')].map(a => ({
+          name: val('.article-name', a),
+          sku: val('.article-sku', a),
+          orderId: val('.article-order-id', a),
+          qty: val('.article-qty', a),
+          price: val('.article-price', a)
+        }))
+      };
+    }
+
+    function addWrappedText(doc, text, x, y, maxWidth, lineHeight = 5) {
+      const lines = doc.splitTextToSize(text || '-', maxWidth);
+      doc.text(lines, x, y);
+      return y + lines.length * lineHeight;
+    }
+
+    async function generatePdf() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const data = collectData();
+
+      const margin = 16;
+      const pageWidth = 210;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 18;
+
+      const ensureSpace = (needed = 25) => {
+        if (y + needed > 282) {
+          doc.addPage();
+          y = 18;
+        }
+      };
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text('Bestellung', margin, y);
+      y += 11;
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Lieferadresse', margin, y);
+      doc.text('Rechnungsadresse', 108, y);
+      y += 6;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const leftLines = doc.splitTextToSize(data.lieferadresse || '-', 82);
+      const rightLines = doc.splitTextToSize(data.rechnungsadresse || '-', 82);
+      const addressHeight = Math.max(leftLines.length, rightLines.length) * 5;
+      doc.text(leftLines, margin, y);
+      doc.text(rightLines, 108, y);
+      y += addressHeight + 7;
+
+      doc.setDrawColor(210);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('VAT ID:', margin, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(data.vatid || '-', 36, y);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Bestellung / PO Nummer:', 108, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(data.po || '-', 157, y);
+      y += 10;
+
+      data.articles.forEach((item, index) => {
+        ensureSpace(44);
+        doc.setFillColor(245, 247, 250);
+        doc.roundedRect(margin, y - 5, contentWidth, 36, 2, 2, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(`Artikel ${index + 1}`, margin + 4, y + 2);
+        y += 9;
+
+        doc.setFontSize(9.5);
+        const rows = [
+          ['Artikelbezeichnung', item.name || '-'],
+          ['SKU', item.sku || '-'],
+          ['Order-Id', item.orderId || '-'],
+          ['Stückzahl', item.qty || '-'],
+          ['Summe pro Stück', item.price ? `${Number(item.price).toFixed(2)} EUR` : '-']
+        ];
+
+        rows.forEach(([label, value]) => {
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${label}:`, margin + 4, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(String(value), margin + 45, y);
+          y += 5;
+        });
+        y += 5;
+      });
+
+      ensureSpace(18);
+      doc.setDrawColor(210);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Total Amount (Bestellwert):', margin, y);
+      doc.setFont('helvetica', 'normal');
+      const totalDisplay = data.totalAmount !== '' ? `${Number(data.totalAmount).toFixed(2)} EUR` : '-';
+      doc.text(totalDisplay, margin + 62, y);
+
+      if (data.comment) {
+        y += 12;
+        ensureSpace(28);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text('Kommentar', margin, y);
+        y += 7;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        const commentLines = doc.splitTextToSize(data.comment, contentWidth);
+        commentLines.forEach(line => {
+          ensureSpace(6);
+          doc.text(line, margin, y);
+          y += 5;
+        });
+      }
+
+      const filenameSafe = (data.po || 'Bestellung').replace(/[^a-z0-9_-]+/gi, '_');
+      doc.save(`${filenameSafe}.pdf`);
+    }
+
+    document.getElementById('addArticle').addEventListener('click', () => addArticle());
+    document.getElementById('generatePdf').addEventListener('click', generatePdf);
+    document.getElementById('cxmlFile').addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (file) importCxml(file);
+    });
+    document.getElementById('importCxmlText').addEventListener('click', () => {
+      applyCxmlText(document.getElementById('cxmlText').value);
+    });
+    totalAmountInput.addEventListener('input', () => {
+      totalAmountManuallyEdited = totalAmountInput.value !== '';
+      if (!totalAmountManuallyEdited) calculateTotalAmount();
+    });
+
+    addArticle();
+  </script>
+</body>
+</html>
